@@ -30,6 +30,10 @@ export class MessageData {
     chatMessage.created = new Date();
     chatMessage.deleted = false;
 
+    if (data.tags && data.tags.length > 0) {
+      chatMessage.tags = data.tags;
+    }
+
     createRichContent(data, chatMessage);
 
     const dbResult = await chatMessage.save();
@@ -365,5 +369,35 @@ export class MessageData {
     }
 
     return chatMessageToObject(updatedResult);
+  }
+
+  async addTags(messageId: string, tags: string[]): Promise<ChatMessageModel> {
+    const updatedMessage = await this.chatMessageModel.findByIdAndUpdate(
+      messageId,
+      { $addToSet: { tags: { $each: tags } } },
+      { new: true },
+    );
+    if (!updatedMessage)
+      throw new Error('Message not found or could not add tags');
+    return chatMessageToObject(updatedMessage);
+  }
+
+  async updateTags(
+    messageId: string,
+    tags: string[],
+  ): Promise<ChatMessageModel> {
+    const updatedMessage = await this.chatMessageModel.findByIdAndUpdate(
+      messageId,
+      { $set: { tags: tags } },
+      { new: true },
+    );
+    if (!updatedMessage)
+      throw new Error('Message not found or could not update tags');
+    return chatMessageToObject(updatedMessage);
+  }
+
+  async getMessagesByTags(tags: string[]): Promise<ChatMessageModel[]> {
+    const messages = await this.chatMessageModel.find({ tags: { $in: tags } });
+    return messages.map(chatMessageToObject);
   }
 }
